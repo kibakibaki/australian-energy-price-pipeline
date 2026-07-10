@@ -1,0 +1,26 @@
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Local configuration and secrets
+.env
+.env.*
+!.env.example
+
+# Generated databases
+*.duckdb
+*.duckdb.*
+*.wal
+
+# Downloaded source data
+data/raw/
+
+# Editors and operating systems
+.DS_Store
+.vscode/
+
+# Temporary output
+*.part
+*.log
