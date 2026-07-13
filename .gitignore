@@ -24,3 +24,19 @@ data/raw/
 # Temporary output
 *.part
 *.log
+
+.venv/
+__pycache__/
+.DS_Store
+
+*.duckdb
+*.duckdb.wal
+
+data/raw/
+data/parquet/
+*.csv
+*.zip
+*.parquet
+
+energy_dbt/target/
+energy_dbt/logs/

@@ -54,3 +54,23 @@ FROM v_power_price
 GROUP BY market_date, region_code
 HAVING COUNT(*) <> 288
 ORDER BY market_date, region_code;
+
+-- Check dbt summary output
+select *
+from mart_energy_price_summary
+limit 20;
+
+-- Check fact table row count
+select count(*) as row_count
+from fact_energy_price;
+
+-- Check regional price summary
+select
+    region_code,
+    count(*) as row_count,
+    avg(price) as avg_price,
+    min(price) as min_price,
+    max(price) as max_price
+from fact_energy_price
+group by region_code
+order by region_code;
