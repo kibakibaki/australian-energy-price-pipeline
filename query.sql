@@ -54,3 +54,6 @@ FROM v_power_price
 GROUP BY market_date, region_code
 HAVING COUNT(*) <> 288
 ORDER BY market_date, region_code;
+
+SELECT distinct region_code
+FROM v_power_price
