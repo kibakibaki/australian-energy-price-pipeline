@@ -9,9 +9,11 @@ electricity and gas spot prices from the Australian Energy Market Operator
 | Commodity | Market | Resolution | Unit | Source |
 | --- | --- | --- | --- | --- |
 | Electricity | AEMO National Electricity Market (NEM) | 5 minutes | AUD/MWh | NEMWeb Dispatch Price |
+| Gas | Short Term Trading Market (NSW, QLD, SA) | Daily gas day | AUD/GJ | AEMO STTM Price and Withdrawals |
 | Gas | Victorian Declared Wholesale Gas Market (DWGM) | Schedule interval | AUD/GJ | AEMO DWGM Prices and Demand |
 
-The ingestion commands below can reproduce the 2024–2025 dataset locally.
+The ingestion commands below reproduce the documented electricity period and
+the 2022-01-01 through 2026-01-01 gas period locally.
 Generated DuckDB files and downloaded source archives are intentionally excluded
 from Git because they are large and reproducible.
 
@@ -53,11 +55,13 @@ python aemo_ingestion.py \
 
 ```bash
 python aemo_gas_ingestion.py \
-  --start-date 2024-01-01 \
-  --end-date 2025-12-31
+  --start-date 2022-01-01 \
+  --end-date 2026-01-01
 ```
 
-Use `--refresh` with the gas command to replace the cached AEMO workbook.
+The default ingests both STTM and DWGM. Use `--market sttm` or
+`--market dwgm` to select one market, and `--refresh` to replace cached
+AEMO workbooks.
 
 ## Query the data
 
@@ -91,10 +95,13 @@ ORDER BY commodity, market;
 - Negative electricity prices and prices at the market floor or cap are valid.
 - Historical monthly electricity price files do not include dispatch demand
   metrics, so the optional demand fields are null for those records.
-- The gas pipeline currently covers the Victorian DWGM. Other gas markets such
-  as STTM can be added as separate market identifiers.
+- AEMO STTM prices cover the Sydney (NSW), Brisbane (QLD), and Adelaide (SA)
+  hubs. DWGM covers Victoria.
+- Tasmania does not have an AEMO-operated wholesale gas spot market, so there
+  is no equivalent official TAS gas spot-price series to ingest.
 
 ## Data sources
 
 - [AEMO NEM data](https://www.aemo.com.au/energy-systems/electricity/national-electricity-market-nem/data-nem)
 - [AEMO VIC wholesale gas prices](https://www.aemo.com.au/energy-systems/gas/declared-wholesale-gas-market-dwgm/data-dwgm/vic-wholesale-price-withdrawals)
+- [AEMO STTM gas prices](https://www.aemo.com.au/energy-systems/gas/short-term-trading-market-sttm/data-sttm/daily-sttm-reports)

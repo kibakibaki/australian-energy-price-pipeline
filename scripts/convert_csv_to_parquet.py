@@ -1,68 +1,52 @@
 from pathlib import Path
-import csv
-import pandas as pd
+import duckdb
 
-RAW_DIR = Path("data/raw")
+
+DB_PATH = Path("energy.duckdb")
 PARQUET_DIR = Path("data/parquet")
 
 PARQUET_DIR.mkdir(parents=True, exist_ok=True)
 
-csv_files = list(RAW_DIR.rglob("*.CSV")) + list(RAW_DIR.rglob("*.csv"))
 
-if not csv_files:
-    print("No CSV files found under data/raw/")
-    raise SystemExit
+def export_table_to_parquet(con, table_name: str, output_path: Path) -> None:
+    output_path.parent.mkdir(parents=True, exist_ok=True)
 
-for csv_path in csv_files:
-    print(f"Reading AEMO CSV: {csv_path}")
+    print(f"Exporting {table_name} -> {output_path}")
 
-    header = None
-    data_rows = []
+    con.execute(f"""
+        COPY (
+            SELECT *
+            FROM {table_name}
+        )
+        TO '{output_path}'
+        (FORMAT PARQUET);
+    """)
 
-    with open(csv_path, "r", encoding="utf-8", errors="ignore", newline="") as f:
-        reader = csv.reader(f)
+    row_count = con.execute(f"SELECT COUNT(*) FROM {table_name}").fetchone()[0]
+    print(f"Done. Rows exported: {row_count}")
 
-        for row in reader:
-            if not row:
-                continue
 
-            # AEMO metadata/header row
-            if row[0] == "I":
-                # Usually first 4 columns are metadata, actual data columns start after that
-                header = row[4:]
+def main() -> None:
+    if not DB_PATH.exists():
+        raise FileNotFoundError(f"DuckDB database not found: {DB_PATH}")
 
-            # AEMO data row
-            elif row[0] == "D":
-                if header is not None:
-                    data_rows.append(row[4:])
+    con = duckdb.connect(str(DB_PATH))
 
-    if header is None:
-        print(f"No header row found in {csv_path}, skipped.")
-        continue
+    tables_to_export = [
+        "fact_energy_price",
+        "v_power_price",
+        "v_gas_price",
+        "mart_energy_price_summary",
+    ]
 
-    if not data_rows:
-        print(f"No data rows found in {csv_path}, skipped.")
-        continue
+    for table_name in tables_to_export:
+        output_path = PARQUET_DIR / f"{table_name}.parquet"
+        export_table_to_parquet(con, table_name, output_path)
 
-    # Make row lengths consistent
-    clean_rows = []
-    for row in data_rows:
-        if len(row) < len(header):
-            row = row + [None] * (len(header) - len(row))
-        elif len(row) > len(header):
-            row = row[:len(header)]
-        clean_rows.append(row)
+    con.close()
 
-    df = pd.DataFrame(clean_rows, columns=header)
+    print("\nAll DuckDB tables/views exported to Parquet successfully.")
 
-    relative_path = csv_path.relative_to(RAW_DIR)
-    parquet_path = PARQUET_DIR / relative_path.with_suffix(".parquet")
-    parquet_path.parent.mkdir(parents=True, exist_ok=True)
 
-    df.to_parquet(parquet_path, index=False)
-
-    print(f"Converted to: {parquet_path}")
-    print(f"Rows: {len(df)}")
-    print(f"Columns: {list(df.columns)}")
-
-print("AEMO CSV to Parquet conversion completed.")
+if __name__ == "__main__":
+    main()

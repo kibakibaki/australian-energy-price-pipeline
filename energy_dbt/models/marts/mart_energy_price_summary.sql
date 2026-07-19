@@ -11,12 +11,12 @@ select
     interval_minutes,
 
     count(*) as row_count,
-    min(interval_start_utc) as first_interval_utc,
-    max(interval_start_utc) as last_interval_utc,
+    min(market_datetime_local) as first_market_datetime,
+    max(market_datetime_local) as last_market_datetime,
     avg(price_value) as avg_price,
+    median(price_value) as median_price,
     min(price_value) as min_price,
-    max(price_value) as max_price,
-    avg(total_demand_mw) as avg_total_demand_mw
+    max(price_value) as max_price
 
 from {{ ref('stg_energy_price') }}
 

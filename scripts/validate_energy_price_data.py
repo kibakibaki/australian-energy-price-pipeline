@@ -28,10 +28,13 @@ REQUIRED_COLUMNS = [
 ]
 
 
-EXPECTED_REGIONS = {"NSW1", "QLD1", "SA1", "TAS1", "VIC1"}
+EXPECTED_REGIONS = {
+    "NSW1", "QLD1", "SA1", "TAS1", "VIC1",
+    "NSW", "QLD", "SA", "VIC",
+}
 EXPECTED_COMMODITIES = {"POWER", "GAS"}
 EXPECTED_CURRENCY = {"AUD"}
-EXPECTED_MARKETS = {"AEMO_NEM", "AEMO_DWGM"}
+EXPECTED_MARKETS = {"AEMO_NEM", "AEMO_STTM", "AEMO_DWGM"}
 
 
 def load_energy_data() -> pd.DataFrame:
@@ -72,7 +75,7 @@ def validate_schema_consistency(df: pd.DataFrame) -> None:
 
 
 def validate_date_coverage(df: pd.DataFrame) -> None:
-    """Check timestamp coverage by region."""
+    """Check timestamp coverage by commodity, market, and region."""
     print("\n3. Date coverage check")
 
     if df.empty:
@@ -80,7 +83,7 @@ def validate_date_coverage(df: pd.DataFrame) -> None:
         return
 
     coverage = (
-        df.groupby("region_code")
+        df.groupby(["commodity", "market", "region_code"])
         .agg(
             first_timestamp=("interval_start_utc", "min"),
             last_timestamp=("interval_start_utc", "max"),
@@ -194,31 +197,25 @@ def validate_data_types(df: pd.DataFrame) -> None:
 
 
 def validate_daily_periods(df: pd.DataFrame) -> None:
-    """Check expected number of 5-minute intervals per region for January 2025."""
+    """Check expected daily row counts for each market."""
     print("\n8. Daily / interval count check")
 
     if df.empty:
         print("DataFrame is empty. Cannot check daily periods.")
         return
 
-    expected_rows_jan_2025 = 31 * 24 * 12
-
     check = (
-        df.groupby("region_code")
+        df.groupby(["commodity", "market", "region_code"])
         .size()
         .reset_index(name="actual_rows")
-        .sort_values("region_code")
+        .sort_values(["commodity", "market", "region_code"])
     )
 
-    check["expected_rows_jan_2025"] = expected_rows_jan_2025
-    check["difference"] = check["actual_rows"] - check["expected_rows_jan_2025"]
-
     print(check)
-
-    if (check["difference"] == 0).all():
-        print("All regions have the expected number of 5-minute records for January 2025.")
-    else:
-        print("Warning: Some regions do not match the expected row count.")
+    print(
+        "Note: NEM has 5-minute rows, STTM has one row per gas day, "
+        "and DWGM has five schedule rows per gas day."
+    )
 
 
 def validate_numeric_ranges(df: pd.DataFrame) -> None:

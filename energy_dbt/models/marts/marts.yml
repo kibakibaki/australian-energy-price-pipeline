@@ -1,0 +1,34 @@
+version: 2
+
+models:
+  - name: mart_daily_energy_price
+    description: >
+      Daily state-level power and gas prices. Power is aggregated from
+      five-minute NEM intervals; VIC gas uses the 6 AM DWGM price.
+    columns:
+      - name: market_date
+        tests: [not_null]
+      - name: state_code
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [NSW, QLD, SA, TAS, VIC]
+      - name: interval_count
+        tests: [not_null]
+      - name: avg_power_price_aud_mwh
+        tests: [not_null]
+      - name: has_gas_spot_price
+        tests: [not_null]
+
+  - name: mart_energy_price_summary
+    description: Coverage and descriptive statistics by energy price series.
+    columns:
+      - name: commodity
+        tests: [not_null]
+      - name: market
+        tests: [not_null]
+      - name: region_code
+        tests: [not_null]
+      - name: row_count
+        tests: [not_null]

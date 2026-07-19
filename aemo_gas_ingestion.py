@@ -15,37 +15,66 @@ from aemo_ingestion import create_http_session
 from db_schema import initialise_database, write_ingestion_log
 
 
-LANDING_PAGE = (
+DWGM_LANDING_PAGE = (
     "https://www.aemo.com.au/energy-systems/gas/"
     "declared-wholesale-gas-market-dwgm/data-dwgm/"
     "vic-wholesale-price-withdrawals"
 )
-RAW_DIRECTORY = Path("data/raw/aemo_gas/dwgm")
+STTM_LANDING_PAGE = (
+    "https://www.aemo.com.au/energy-systems/gas/"
+    "short-term-trading-market-sttm/data-sttm/daily-sttm-reports"
+)
+RAW_DIRECTORY = Path("data/raw/aemo_gas")
 DATABASE_PATH = Path("energy.duckdb")
 LOGGER = logging.getLogger(__name__)
 
+STTM_SHEETS = {
+    "SYD price and withdrawals": {
+        "price_column": "SYD exante_price",
+        "region_code": "NSW",
+        "timezone": "Australia/Sydney",
+    },
+    "BRI price and withdrawals": {
+        "price_column": "BRI exante_price",
+        "region_code": "QLD",
+        "timezone": "Australia/Brisbane",
+    },
+    "ADL price and withdrawals": {
+        "price_column": "ADL exante_price",
+        "region_code": "SA",
+        "timezone": "Australia/Adelaide",
+    },
+}
 
-def discover_workbook_url(session: requests.Session) -> str:
-    """Find the current AEMO DWGM all-history workbook."""
-    response = session.get(LANDING_PAGE, timeout=60)
+
+def discover_workbook_url(
+    session: requests.Session,
+    landing_page: str,
+    workbook_name: str,
+) -> str:
+    """Find an AEMO all-history gas workbook."""
+    response = session.get(landing_page, timeout=60)
     response.raise_for_status()
     soup = BeautifulSoup(response.text, "html.parser")
 
     for link in soup.find_all("a", href=True):
         href = link["href"]
-        if "dwgm-prices-and-demand.xlsx" in href.lower():
-            return urljoin(LANDING_PAGE, href)
+        if workbook_name.lower() in href.lower():
+            return urljoin(landing_page, href)
 
-    raise ValueError("AEMO DWGM prices workbook link was not found")
+    raise ValueError(f"AEMO workbook link was not found: {workbook_name}")
 
 
 def download_workbook(
     session: requests.Session,
     workbook_url: str,
+    market_directory: str,
+    workbook_name: str,
     refresh: bool = False,
 ) -> Path:
-    RAW_DIRECTORY.mkdir(parents=True, exist_ok=True)
-    destination = RAW_DIRECTORY / "dwgm-prices-and-demand.xlsx"
+    destination_directory = RAW_DIRECTORY / market_directory
+    destination_directory.mkdir(parents=True, exist_ok=True)
+    destination = destination_directory / workbook_name
 
     if destination.exists() and destination.stat().st_size > 0 and not refresh:
         LOGGER.info("Using cached file: %s", destination)
@@ -104,10 +133,10 @@ def parse_dwgm_prices(
         & cleaned["interval_minutes"].notna()
     ].copy()
 
-    cleaned["timezone"] = "Australia/Brisbane"
+    cleaned["timezone"] = "Australia/Melbourne"
     cleaned["interval_start_utc"] = (
         cleaned["market_datetime_local"]
-        .dt.tz_localize("Australia/Brisbane")
+        .dt.tz_localize("Australia/Melbourne")
         .dt.tz_convert("UTC")
     )
     cleaned["country"] = "Australia"
@@ -132,7 +161,82 @@ def parse_dwgm_prices(
     return cleaned
 
 
-def load_dwgm_prices(
+def parse_sttm_prices(
+    workbook_path: Path,
+    start_date: date,
+    end_date: date,
+) -> pd.DataFrame:
+    """Transform official STTM daily ex-ante prices to the shared schema."""
+    if start_date > end_date:
+        raise ValueError("start_date must not be after end_date")
+
+    frames: list[pd.DataFrame] = []
+    for sheet_name, settings in STTM_SHEETS.items():
+        raw = pd.read_excel(workbook_path, sheet_name=sheet_name)
+        raw.columns = [str(column).strip() for column in raw.columns]
+        price_column = settings["price_column"]
+        required = {"DateTime", price_column}
+        missing = required.difference(raw.columns)
+        if missing:
+            raise ValueError(
+                f"Missing STTM columns {sorted(missing)} in {sheet_name}; "
+                f"available columns are {raw.columns.tolist()}"
+            )
+
+        gas_date = pd.to_datetime(raw["DateTime"], errors="coerce")
+        price = pd.to_numeric(raw[price_column], errors="coerce")
+        # An STTM gas day begins at 6:00 AM local time.
+        market_time = gas_date + pd.Timedelta(hours=6)
+        frame = pd.DataFrame(
+            {
+                "market_datetime_local": market_time,
+                "price": price,
+            }
+        )
+        frame = frame[
+            gas_date.dt.date.between(start_date, end_date)
+            & frame["market_datetime_local"].notna()
+            & frame["price"].notna()
+        ].copy()
+
+        timezone = settings["timezone"]
+        frame["timezone"] = timezone
+        frame["interval_start_utc"] = (
+            frame["market_datetime_local"]
+            .dt.tz_localize(timezone)
+            .dt.tz_convert("UTC")
+        )
+        frame["country"] = "Australia"
+        frame["commodity"] = "GAS"
+        frame["market"] = "AEMO_STTM"
+        frame["region_code"] = settings["region_code"]
+        frame["price_type"] = "STTM Ex Ante Market Price"
+        frame["total_demand_mw"] = pd.NA
+        frame["available_generation_mw"] = pd.NA
+        frame["available_load_mw"] = pd.NA
+        frame["currency"] = "AUD"
+        frame["unit"] = "AUD/GJ"
+        frame["interval_minutes"] = 1440
+        frame["source"] = "AEMO STTM"
+        frame["source_file"] = workbook_path.name
+        frame["ingested_at_utc"] = pd.Timestamp.now(tz="UTC")
+        frames.append(frame)
+
+    cleaned = pd.concat(frames, ignore_index=True)
+    cleaned.drop_duplicates(
+        subset=[
+            "interval_start_utc",
+            "market",
+            "region_code",
+            "price_type",
+        ],
+        keep="last",
+        inplace=True,
+    )
+    return cleaned
+
+
+def load_gas_prices(
     connection: duckdb.DuckDBPyConnection,
     dataframe: pd.DataFrame,
 ) -> int:
@@ -142,7 +246,7 @@ def load_dwgm_prices(
     before_count = connection.execute(
         "SELECT COUNT(*) FROM fact_energy_price"
     ).fetchone()[0]
-    connection.register("incoming_dwgm_data", dataframe)
+    connection.register("incoming_gas_data", dataframe)
     try:
         connection.execute(
             """
@@ -172,7 +276,7 @@ def load_dwgm_prices(
                 incoming.source,
                 incoming.source_file,
                 incoming.ingested_at_utc
-            FROM incoming_dwgm_data AS incoming
+            FROM incoming_gas_data AS incoming
             WHERE NOT EXISTS (
                 SELECT 1
                 FROM fact_energy_price AS existing
@@ -185,7 +289,7 @@ def load_dwgm_prices(
             """
         )
     finally:
-        connection.unregister("incoming_dwgm_data")
+        connection.unregister("incoming_gas_data")
 
     after_count = connection.execute(
         "SELECT COUNT(*) FROM fact_energy_price"
@@ -193,55 +297,126 @@ def load_dwgm_prices(
     return after_count - before_count
 
 
-def ingest_dwgm_period(
+def replace_gas_period(
+    connection: duckdb.DuckDBPyConnection,
+    market: str,
+    start_date: date,
+    end_date: date,
+) -> None:
+    """Remove a requested gas period so corrected source rows can be reloaded."""
+    connection.execute(
+        """
+        DELETE FROM fact_energy_price
+        WHERE commodity = 'GAS'
+          AND market = ?
+          AND CAST(market_datetime_local AS DATE) BETWEEN ? AND ?
+        """,
+        [market, start_date, end_date],
+    )
+
+
+def ingest_gas_period(
     start_date: date,
     end_date: date,
     refresh: bool = False,
+    markets: tuple[str, ...] = ("sttm", "dwgm"),
 ) -> None:
-    started_at = datetime.now().astimezone()
     session = create_http_session()
     connection = duckdb.connect(str(DATABASE_PATH))
     initialise_database(connection)
-    source_file = "dwgm-prices-and-demand.xlsx"
 
     try:
-        cached_workbook = RAW_DIRECTORY / source_file
-        if cached_workbook.exists() and not refresh:
-            workbook_path = cached_workbook
-            LOGGER.info("Using cached file: %s", workbook_path)
-        else:
-            workbook_url = discover_workbook_url(session)
-            workbook_path = download_workbook(session, workbook_url, refresh)
-        dataframe = parse_dwgm_prices(workbook_path, start_date, end_date)
-        inserted_count = load_dwgm_prices(connection, dataframe)
-        write_ingestion_log(
-            connection=connection,
-            dataset_name="AEMO_DWGM_PRICE",
-            source_file=source_file,
-            report_date=start_date,
-            status="SUCCESS",
-            row_count=inserted_count,
-            started_at=started_at,
-        )
-        LOGGER.info(
-            "DWGM %s to %s: parsed %d, inserted %d",
-            start_date,
-            end_date,
-            len(dataframe),
-            inserted_count,
-        )
-    except Exception as error:
-        write_ingestion_log(
-            connection=connection,
-            dataset_name="AEMO_DWGM_PRICE",
-            source_file=source_file,
-            report_date=start_date,
-            status="FAILED",
-            row_count=0,
-            started_at=started_at,
-            error_message=str(error),
-        )
-        raise
+        jobs = {
+            "sttm": {
+                "landing_page": STTM_LANDING_PAGE,
+                "directory": "sttm",
+                "source_file": "sttm-price-and-withdrawals.xlsx",
+                "dataset_name": "AEMO_STTM_PRICE",
+                "market": "AEMO_STTM",
+                "parser": parse_sttm_prices,
+            },
+            "dwgm": {
+                "landing_page": DWGM_LANDING_PAGE,
+                "directory": "dwgm",
+                "source_file": "dwgm-prices-and-demand.xlsx",
+                "dataset_name": "AEMO_DWGM_PRICE",
+                "market": "AEMO_DWGM",
+                "parser": parse_dwgm_prices,
+            },
+        }
+
+        for market_name in markets:
+            job = jobs[market_name]
+            started_at = datetime.now().astimezone()
+            source_file = job["source_file"]
+            try:
+                cached_workbook = (
+                    RAW_DIRECTORY / job["directory"] / source_file
+                )
+                if cached_workbook.exists() and not refresh:
+                    workbook_path = cached_workbook
+                    LOGGER.info("Using cached file: %s", workbook_path)
+                else:
+                    workbook_url = discover_workbook_url(
+                        session,
+                        job["landing_page"],
+                        source_file,
+                    )
+                    workbook_path = download_workbook(
+                        session,
+                        workbook_url,
+                        job["directory"],
+                        source_file,
+                        refresh,
+                    )
+
+                dataframe = job["parser"](
+                    workbook_path,
+                    start_date,
+                    end_date,
+                )
+                connection.execute("BEGIN")
+                replace_gas_period(
+                    connection,
+                    job["market"],
+                    start_date,
+                    end_date,
+                )
+                inserted_count = load_gas_prices(connection, dataframe)
+                connection.execute("COMMIT")
+                write_ingestion_log(
+                    connection=connection,
+                    dataset_name=job["dataset_name"],
+                    source_file=source_file,
+                    report_date=start_date,
+                    status="SUCCESS",
+                    row_count=inserted_count,
+                    started_at=started_at,
+                )
+                LOGGER.info(
+                    "%s %s to %s: parsed %d, inserted %d",
+                    market_name.upper(),
+                    start_date,
+                    end_date,
+                    len(dataframe),
+                    inserted_count,
+                )
+            except Exception as error:
+                try:
+                    connection.execute("ROLLBACK")
+                except duckdb.TransactionException:
+                    pass
+                write_ingestion_log(
+                    connection=connection,
+                    dataset_name=job["dataset_name"],
+                    source_file=source_file,
+                    report_date=start_date,
+                    status="FAILED",
+                    row_count=0,
+                    started_at=started_at,
+                    error_message=str(error),
+                )
+                raise
     finally:
         session.close()
         connection.close()
@@ -249,14 +424,20 @@ def ingest_dwgm_period(
 
 def parse_arguments() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Ingest historical AEMO Victorian DWGM gas prices."
+        description="Ingest historical AEMO STTM and DWGM gas prices."
     )
     parser.add_argument("--start-date", type=date.fromisoformat, required=True)
     parser.add_argument("--end-date", type=date.fromisoformat, required=True)
     parser.add_argument(
         "--refresh",
         action="store_true",
-        help="Download the current AEMO workbook instead of using the cache.",
+        help="Download current AEMO workbooks instead of using the cache.",
+    )
+    parser.add_argument(
+        "--market",
+        choices=["all", "sttm", "dwgm"],
+        default="all",
+        help="Gas market to ingest (default: all).",
     )
     return parser.parse_args()
 
@@ -267,8 +448,14 @@ if __name__ == "__main__":
         format="%(asctime)s | %(levelname)s | %(message)s",
     )
     arguments = parse_arguments()
-    ingest_dwgm_period(
+    selected_markets = (
+        ("sttm", "dwgm")
+        if arguments.market == "all"
+        else (arguments.market,)
+    )
+    ingest_gas_period(
         arguments.start_date,
         arguments.end_date,
         arguments.refresh,
+        selected_markets,
     )
