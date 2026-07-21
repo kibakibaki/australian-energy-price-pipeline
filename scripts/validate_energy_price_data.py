@@ -3,7 +3,7 @@ import duckdb
 import pandas as pd
 
 
-DB_PATH = Path("energy.duckdb")
+DB_PATH = Path("data/database/australian_energy_market.duckdb")
 
 
 REQUIRED_COLUMNS = [

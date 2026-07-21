@@ -17,16 +17,23 @@ the 2022-01-01 through 2026-01-01 gas period locally.
 Generated DuckDB files and downloaded source archives are intentionally excluded
 from Git because they are large and reproducible.
 
-## Project structure
+## Data Lake structure
 
 ```text
-aemo_ingestion.py       NEM electricity price ingestion
-aemo_gas_ingestion.py   Victorian DWGM gas price ingestion
-db_schema.py            Shared DuckDB schema and compatibility views
-init_duckdb.py           Database initialisation
-query.sql                Example validation queries
-requirements.txt         Python dependencies
+data/
+├── metadata/                 CSV catalog, manifest, and data dictionary
+├── raw/
+│   ├── electricity/aemo/     Original AEMO NEM archives (Bronze)
+│   └── gas/aemo/             Original STTM and DWGM workbooks (Bronze)
+├── parquet/
+│   └── fact_energy_price.parquet  Complete POWER and GAS dataset
+└── database/
+    └── australian_energy_market.duckdb
 ```
+
+Weather is intentionally omitted until a weather source is selected.
+dbt staging, intermediate, and mart relations remain inside DuckDB instead of
+being exported as duplicate Parquet files.
 
 ## Setup
 
@@ -62,6 +69,22 @@ python aemo_gas_ingestion.py \
 The default ingests both STTM and DWGM. Use `--market sttm` or
 `--market dwgm` to select one market, and `--refresh` to replace cached
 AEMO workbooks.
+
+## Transform, test, and export
+
+Run dbt from its project directory with the repository-local profile:
+
+```bash
+cd energy_dbt
+dbt build --profiles-dir .
+cd ..
+python scripts/convert_csv_to_parquet.py
+python scripts/generate_data_lake_metadata.py
+python scripts/validate_energy_price_data.py
+```
+
+The dbt test result is written to `energy_dbt/target/run_results.json` and the
+detailed execution log to `energy_dbt/logs/dbt.log`.
 
 ## Query the data
 

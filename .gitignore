@@ -34,9 +34,17 @@ __pycache__/
 
 data/raw/
 data/parquet/
+data/raw_parquet/
+data/processed/
+data/database/
 *.csv
 *.zip
 *.parquet
 
 energy_dbt/target/
 energy_dbt/logs/
+energy_dbt/.user.yml
+
+# Small Data Lake catalog files are versioned.
+!data/metadata/
+!data/metadata/*.csv
