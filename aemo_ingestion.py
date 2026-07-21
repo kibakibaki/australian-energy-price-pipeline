@@ -30,8 +30,8 @@ MMSDM_ARCHIVE_URL = (
     "https://nemweb.com.au/Data_Archive/Wholesale_Electricity/MMSDM"
 )
 
-RAW_DIRECTORY = Path("data/raw/electricity/aemo")
-DATABASE_PATH = Path("data/database/australian_energy_market.duckdb")
+RAW_DIRECTORY = Path("data/raw/australia/electricity/aemo")
+DATABASE_PATH = Path("database/australian_energy_market.duckdb")
 
 VALID_REGIONS = {
     "NSW1",

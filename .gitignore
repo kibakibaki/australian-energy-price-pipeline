@@ -36,7 +36,7 @@ data/raw/
 data/parquet/
 data/raw_parquet/
 data/processed/
-data/database/
+database/
 *.csv
 *.zip
 *.parquet
@@ -47,4 +47,5 @@ energy_dbt/.user.yml
 
 # Small Data Lake catalog files are versioned.
 !data/metadata/
-!data/metadata/*.csv
+!data/metadata/australia/
+!data/metadata/australia/*.csv

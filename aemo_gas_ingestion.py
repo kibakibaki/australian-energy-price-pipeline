@@ -24,8 +24,8 @@ STTM_LANDING_PAGE = (
     "https://www.aemo.com.au/energy-systems/gas/"
     "short-term-trading-market-sttm/data-sttm/daily-sttm-reports"
 )
-RAW_DIRECTORY = Path("data/raw/gas/aemo")
-DATABASE_PATH = Path("data/database/australian_energy_market.duckdb")
+RAW_DIRECTORY = Path("data/raw/australia/gas/aemo")
+DATABASE_PATH = Path("database/australian_energy_market.duckdb")
 LOGGER = logging.getLogger(__name__)
 
 STTM_SHEETS = {

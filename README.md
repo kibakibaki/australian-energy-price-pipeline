@@ -21,14 +21,18 @@ from Git because they are large and reproducible.
 
 ```text
 data/
-├── metadata/                 CSV catalog, manifest, and data dictionary
 ├── raw/
-│   ├── electricity/aemo/     Original AEMO NEM archives (Bronze)
-│   └── gas/aemo/             Original STTM and DWGM workbooks (Bronze)
-├── parquet/
-│   └── fact_energy_price.parquet  Complete POWER and GAS dataset
-└── database/
-    └── australian_energy_market.duckdb
+│   └── australia/
+│       ├── electricity/aemo/ Original AEMO NEM archives (Bronze)
+│       └── gas/aemo/         Original STTM and DWGM workbooks (Bronze)
+├── raw_parquet/
+│   └── australia/
+│       └── fact_energy_price.parquet  Complete POWER and GAS dataset
+└── metadata/
+    └── australia/            CSV catalog, manifest, and data dictionary
+
+database/
+└── australian_energy_market.duckdb    Local dbt/DuckDB database
 ```
 
 Weather is intentionally omitted until a weather source is selected.

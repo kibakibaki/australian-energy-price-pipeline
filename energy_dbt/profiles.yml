@@ -3,5 +3,5 @@ energy_dbt:
   outputs:
     dev:
       type: duckdb
-      path: ../data/database/australian_energy_market.duckdb
+      path: ../database/australian_energy_market.duckdb
       threads: 4

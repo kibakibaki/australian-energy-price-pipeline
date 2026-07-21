@@ -7,8 +7,8 @@ from pathlib import Path
 import duckdb
 
 
-DB_PATH = Path("data/database/australian_energy_market.duckdb")
-METADATA_DIR = Path("data/metadata")
+DB_PATH = Path("database/australian_energy_market.duckdb")
+METADATA_DIR = Path("data/metadata/australia")
 
 SOURCE_CATALOG = [
     {
@@ -17,7 +17,7 @@ SOURCE_CATALOG = [
         "regions": "NSW1|QLD1|SA1|TAS1|VIC1",
         "frequency": "5 minutes",
         "source": "AEMO NEMWeb MMSDM",
-        "raw_path": "data/raw/electricity/aemo/monthly",
+        "raw_path": "data/raw/australia/electricity/aemo/monthly",
     },
     {
         "dataset": "aemo_sttm_price",
@@ -25,7 +25,7 @@ SOURCE_CATALOG = [
         "regions": "NSW|QLD|SA",
         "frequency": "daily gas day",
         "source": "AEMO STTM",
-        "raw_path": "data/raw/gas/aemo/sttm",
+        "raw_path": "data/raw/australia/gas/aemo/sttm",
     },
     {
         "dataset": "aemo_dwgm_price",
@@ -33,7 +33,7 @@ SOURCE_CATALOG = [
         "regions": "VIC",
         "frequency": "schedule interval",
         "source": "AEMO DWGM",
-        "raw_path": "data/raw/gas/aemo/dwgm",
+        "raw_path": "data/raw/australia/gas/aemo/dwgm",
     },
 ]
 

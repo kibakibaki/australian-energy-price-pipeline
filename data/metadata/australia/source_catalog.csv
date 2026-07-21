@@ -1,0 +1,4 @@
+dataset,commodity,regions,frequency,source,raw_path
+aemo_nem_dispatch_price,POWER,NSW1|QLD1|SA1|TAS1|VIC1,5 minutes,AEMO NEMWeb MMSDM,data/raw/australia/electricity/aemo/monthly
+aemo_sttm_price,GAS,NSW|QLD|SA,daily gas day,AEMO STTM,data/raw/australia/gas/aemo/sttm
+aemo_dwgm_price,GAS,VIC,schedule interval,AEMO DWGM,data/raw/australia/gas/aemo/dwgm

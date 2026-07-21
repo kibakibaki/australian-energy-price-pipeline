@@ -2,8 +2,8 @@ from pathlib import Path
 import duckdb
 
 
-DB_PATH = Path("data/database/australian_energy_market.duckdb")
-PARQUET_DIR = Path("data/parquet")
+DB_PATH = Path("database/australian_energy_market.duckdb")
+PARQUET_DIR = Path("data/raw_parquet/australia")
 
 TABLES_TO_EXPORT = {
     # One complete, analysis-ready dataset containing POWER and GAS.
