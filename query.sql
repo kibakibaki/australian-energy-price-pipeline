@@ -74,3 +74,5 @@ select
 from fact_energy_price
 group by region_code
 order by region_code;
+SELECT distinct region_code
+FROM v_power_price
