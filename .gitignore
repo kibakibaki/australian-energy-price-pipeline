@@ -24,3 +24,28 @@ data/raw/
 # Temporary output
 *.part
 *.log
+
+.venv/
+__pycache__/
+.DS_Store
+
+*.duckdb
+*.duckdb.wal
+
+data/raw/
+data/parquet/
+data/raw_parquet/
+data/processed/
+database/
+*.csv
+*.zip
+*.parquet
+
+energy_dbt/target/
+energy_dbt/logs/
+energy_dbt/.user.yml
+
+# Small Data Lake catalog files are versioned.
+!data/metadata/
+!data/metadata/australia/
+!data/metadata/australia/*.csv

@@ -1,0 +1,7 @@
+energy_dbt:
+  target: dev
+  outputs:
+    dev:
+      type: duckdb
+      path: ../database/australian_energy_market.duckdb
+      threads: 4

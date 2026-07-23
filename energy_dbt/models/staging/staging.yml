@@ -1,0 +1,52 @@
+version: 2
+
+models:
+  - name: stg_energy_price
+    description: Cleaned unified AEMO energy price records.
+    columns:
+      - name: interval_start_utc
+        tests: [not_null]
+      - name: commodity
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['POWER', 'GAS']
+      - name: region_code
+        tests: [not_null]
+      - name: price_value
+        tests: [not_null]
+
+  - name: stg_power_price
+    description: Five-minute AEMO NEM regional power prices.
+    columns:
+      - name: interval_start_utc
+        tests: [not_null]
+      - name: state_code
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [NSW, QLD, SA, TAS, VIC]
+      - name: power_price_aud_mwh
+        tests: [not_null]
+      - name: interval_minutes
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [5]
+
+  - name: stg_gas_price
+    description: AEMO STTM and DWGM gas prices.
+    columns:
+      - name: interval_start_utc
+        tests: [not_null]
+      - name: state_code
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [NSW, QLD, SA, VIC]
+      - name: gas_price_aud_gj
+        tests: [not_null]

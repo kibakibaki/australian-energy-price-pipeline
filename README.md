@@ -9,22 +9,35 @@ electricity and gas spot prices from the Australian Energy Market Operator
 | Commodity | Market | Resolution | Unit | Source |
 | --- | --- | --- | --- | --- |
 | Electricity | AEMO National Electricity Market (NEM) | 5 minutes | AUD/MWh | NEMWeb Dispatch Price |
+| Gas | Short Term Trading Market (NSW, QLD, SA) | Daily gas day | AUD/GJ | AEMO STTM Price and Withdrawals |
 | Gas | Victorian Declared Wholesale Gas Market (DWGM) | Schedule interval | AUD/GJ | AEMO DWGM Prices and Demand |
 
-The ingestion commands below can reproduce the 2024–2025 dataset locally.
+The ingestion commands below reproduce the documented electricity period and
+the 2022-01-01 through 2026-01-01 gas period locally.
 Generated DuckDB files and downloaded source archives are intentionally excluded
 from Git because they are large and reproducible.
 
-## Project structure
+## Data Lake structure
 
 ```text
-aemo_ingestion.py       NEM electricity price ingestion
-aemo_gas_ingestion.py   Victorian DWGM gas price ingestion
-db_schema.py            Shared DuckDB schema and compatibility views
-init_duckdb.py           Database initialisation
-query.sql                Example validation queries
-requirements.txt         Python dependencies
+data/
+├── raw/
+│   └── australia/
+│       ├── electricity/aemo/ Original AEMO NEM archives (Bronze)
+│       └── gas/aemo/         Original STTM and DWGM workbooks (Bronze)
+├── raw_parquet/
+│   └── australia/
+│       └── fact_energy_price.parquet  Complete POWER and GAS dataset
+└── metadata/
+    └── australia/            CSV catalog, manifest, and data dictionary
+
+database/
+└── australian_energy_market.duckdb    Local dbt/DuckDB database
 ```
+
+Weather is intentionally omitted until a weather source is selected.
+dbt staging, intermediate, and mart relations remain inside DuckDB instead of
+being exported as duplicate Parquet files.
 
 ## Setup
 
@@ -53,11 +66,29 @@ python aemo_ingestion.py \
 
 ```bash
 python aemo_gas_ingestion.py \
-  --start-date 2024-01-01 \
-  --end-date 2025-12-31
+  --start-date 2022-01-01 \
+  --end-date 2026-01-01
 ```
 
-Use `--refresh` with the gas command to replace the cached AEMO workbook.
+The default ingests both STTM and DWGM. Use `--market sttm` or
+`--market dwgm` to select one market, and `--refresh` to replace cached
+AEMO workbooks.
+
+## Transform, test, and export
+
+Run dbt from its project directory with the repository-local profile:
+
+```bash
+cd energy_dbt
+dbt build --profiles-dir .
+cd ..
+python scripts/convert_csv_to_parquet.py
+python scripts/generate_data_lake_metadata.py
+python scripts/validate_energy_price_data.py
+```
+
+The dbt test result is written to `energy_dbt/target/run_results.json` and the
+detailed execution log to `energy_dbt/logs/dbt.log`.
 
 ## Query the data
 
@@ -91,10 +122,13 @@ ORDER BY commodity, market;
 - Negative electricity prices and prices at the market floor or cap are valid.
 - Historical monthly electricity price files do not include dispatch demand
   metrics, so the optional demand fields are null for those records.
-- The gas pipeline currently covers the Victorian DWGM. Other gas markets such
-  as STTM can be added as separate market identifiers.
+- AEMO STTM prices cover the Sydney (NSW), Brisbane (QLD), and Adelaide (SA)
+  hubs. DWGM covers Victoria.
+- Tasmania does not have an AEMO-operated wholesale gas spot market, so there
+  is no equivalent official TAS gas spot-price series to ingest.
 
 ## Data sources
 
 - [AEMO NEM data](https://www.aemo.com.au/energy-systems/electricity/national-electricity-market-nem/data-nem)
 - [AEMO VIC wholesale gas prices](https://www.aemo.com.au/energy-systems/gas/declared-wholesale-gas-market-dwgm/data-dwgm/vic-wholesale-price-withdrawals)
+- [AEMO STTM gas prices](https://www.aemo.com.au/energy-systems/gas/short-term-trading-market-sttm/data-sttm/daily-sttm-reports)

@@ -1,0 +1,56 @@
+version: 2
+
+sources:
+  - name: energy_raw
+    description: Raw AEMO energy prices loaded into DuckDB by Python.
+    schema: main
+    tables:
+      - name: fact_energy_price
+        description: Unified AEMO electricity and gas price fact table.
+        columns:
+          - name: interval_start_utc
+            tests: [not_null]
+          - name: market_datetime_local
+            tests: [not_null]
+          - name: commodity
+            tests:
+              - not_null
+              - accepted_values:
+                  arguments:
+                    values: ['POWER', 'GAS']
+          - name: market
+            tests:
+              - not_null
+              - accepted_values:
+                  arguments:
+                    values: ['AEMO_NEM', 'AEMO_STTM', 'AEMO_DWGM']
+          - name: region_code
+            tests:
+              - not_null
+              - accepted_values:
+                  arguments:
+                    values: [NSW1, QLD1, SA1, TAS1, VIC1, NSW, QLD, SA, VIC]
+          - name: price_type
+            tests: [not_null]
+          - name: price
+            tests: [not_null]
+          - name: currency
+            tests:
+              - not_null
+              - accepted_values:
+                  arguments:
+                    values: [AUD]
+          - name: unit
+            tests:
+              - not_null
+              - accepted_values:
+                  arguments:
+                    values: ['AUD/MWh', 'AUD/GJ']
+          - name: interval_minutes
+            tests: [not_null]
+          - name: source
+            tests: [not_null]
+          - name: source_file
+            tests: [not_null]
+          - name: ingested_at_utc
+            tests: [not_null]

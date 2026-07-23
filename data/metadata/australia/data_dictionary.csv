@@ -1,0 +1,143 @@
+dataset,column_name,data_type,is_nullable,ordinal_position
+etl_ingestion_log,dataset_name,VARCHAR,YES,1
+etl_ingestion_log,source_file,VARCHAR,YES,2
+etl_ingestion_log,report_date,DATE,YES,3
+etl_ingestion_log,status,VARCHAR,YES,4
+etl_ingestion_log,row_count,BIGINT,YES,5
+etl_ingestion_log,started_at_utc,TIMESTAMP WITH TIME ZONE,YES,6
+etl_ingestion_log,completed_at_utc,TIMESTAMP WITH TIME ZONE,YES,7
+etl_ingestion_log,error_message,VARCHAR,YES,8
+fact_energy_price,interval_start_utc,TIMESTAMP WITH TIME ZONE,NO,1
+fact_energy_price,market_datetime_local,TIMESTAMP,NO,2
+fact_energy_price,timezone,VARCHAR,NO,3
+fact_energy_price,country,VARCHAR,NO,4
+fact_energy_price,commodity,VARCHAR,NO,5
+fact_energy_price,market,VARCHAR,NO,6
+fact_energy_price,region_code,VARCHAR,NO,7
+fact_energy_price,price_type,VARCHAR,NO,8
+fact_energy_price,price,DOUBLE,NO,9
+fact_energy_price,total_demand_mw,DOUBLE,YES,10
+fact_energy_price,available_generation_mw,DOUBLE,YES,11
+fact_energy_price,available_load_mw,DOUBLE,YES,12
+fact_energy_price,currency,VARCHAR,NO,13
+fact_energy_price,unit,VARCHAR,NO,14
+fact_energy_price,interval_minutes,INTEGER,NO,15
+fact_energy_price,source,VARCHAR,NO,16
+fact_energy_price,source_file,VARCHAR,NO,17
+fact_energy_price,ingested_at_utc,TIMESTAMP WITH TIME ZONE,NO,18
+int_gas_price_daily,gas_date,DATE,YES,1
+int_gas_price_daily,state_code,VARCHAR,YES,2
+int_gas_price_daily,gas_market,VARCHAR,YES,3
+int_gas_price_daily,gas_price_type,VARCHAR,YES,4
+int_gas_price_daily,gas_price_aud_gj,DOUBLE,YES,5
+int_power_price_daily,market_date,DATE,YES,1
+int_power_price_daily,state_code,VARCHAR,YES,2
+int_power_price_daily,interval_count,BIGINT,YES,3
+int_power_price_daily,avg_power_price_aud_mwh,DOUBLE,YES,4
+int_power_price_daily,median_power_price_aud_mwh,DOUBLE,YES,5
+int_power_price_daily,min_power_price_aud_mwh,DOUBLE,YES,6
+int_power_price_daily,max_power_price_aud_mwh,DOUBLE,YES,7
+int_power_price_daily,stddev_power_price_aud_mwh,DOUBLE,YES,8
+int_power_price_daily,negative_price_interval_count,HUGEINT,YES,9
+int_power_price_daily,high_price_interval_count,HUGEINT,YES,10
+mart_daily_energy_price,market_date,DATE,YES,1
+mart_daily_energy_price,state_code,VARCHAR,YES,2
+mart_daily_energy_price,interval_count,BIGINT,YES,3
+mart_daily_energy_price,avg_power_price_aud_mwh,DOUBLE,YES,4
+mart_daily_energy_price,median_power_price_aud_mwh,DOUBLE,YES,5
+mart_daily_energy_price,min_power_price_aud_mwh,DOUBLE,YES,6
+mart_daily_energy_price,max_power_price_aud_mwh,DOUBLE,YES,7
+mart_daily_energy_price,stddev_power_price_aud_mwh,DOUBLE,YES,8
+mart_daily_energy_price,negative_price_interval_count,HUGEINT,YES,9
+mart_daily_energy_price,high_price_interval_count,HUGEINT,YES,10
+mart_daily_energy_price,gas_price_aud_gj,DOUBLE,YES,11
+mart_daily_energy_price,gas_market,VARCHAR,YES,12
+mart_daily_energy_price,gas_price_type,VARCHAR,YES,13
+mart_daily_energy_price,has_gas_spot_price,BOOLEAN,YES,14
+mart_energy_price_summary,country,VARCHAR,YES,1
+mart_energy_price_summary,commodity,VARCHAR,YES,2
+mart_energy_price_summary,market,VARCHAR,YES,3
+mart_energy_price_summary,region_code,VARCHAR,YES,4
+mart_energy_price_summary,price_type,VARCHAR,YES,5
+mart_energy_price_summary,currency,VARCHAR,YES,6
+mart_energy_price_summary,unit,VARCHAR,YES,7
+mart_energy_price_summary,interval_minutes,INTEGER,YES,8
+mart_energy_price_summary,row_count,BIGINT,YES,9
+mart_energy_price_summary,first_market_datetime,TIMESTAMP,YES,10
+mart_energy_price_summary,last_market_datetime,TIMESTAMP,YES,11
+mart_energy_price_summary,avg_price,DOUBLE,YES,12
+mart_energy_price_summary,median_price,DOUBLE,YES,13
+mart_energy_price_summary,min_price,DOUBLE,YES,14
+mart_energy_price_summary,max_price,DOUBLE,YES,15
+stg_energy_price,interval_start_utc,TIMESTAMP WITH TIME ZONE,YES,1
+stg_energy_price,market_datetime_local,TIMESTAMP,YES,2
+stg_energy_price,timezone,VARCHAR,YES,3
+stg_energy_price,country,VARCHAR,YES,4
+stg_energy_price,commodity,VARCHAR,YES,5
+stg_energy_price,market,VARCHAR,YES,6
+stg_energy_price,region_code,VARCHAR,YES,7
+stg_energy_price,price_type,VARCHAR,YES,8
+stg_energy_price,price_value,DOUBLE,YES,9
+stg_energy_price,total_demand_mw,DOUBLE,YES,10
+stg_energy_price,available_generation_mw,DOUBLE,YES,11
+stg_energy_price,available_load_mw,DOUBLE,YES,12
+stg_energy_price,currency,VARCHAR,YES,13
+stg_energy_price,unit,VARCHAR,YES,14
+stg_energy_price,interval_minutes,INTEGER,YES,15
+stg_energy_price,source,VARCHAR,YES,16
+stg_energy_price,source_file,VARCHAR,YES,17
+stg_energy_price,ingested_at_utc,TIMESTAMP WITH TIME ZONE,YES,18
+stg_gas_price,interval_start_utc,TIMESTAMP WITH TIME ZONE,YES,1
+stg_gas_price,market_datetime_local,TIMESTAMP,YES,2
+stg_gas_price,timezone,VARCHAR,YES,3
+stg_gas_price,state_code,VARCHAR,YES,4
+stg_gas_price,market,VARCHAR,YES,5
+stg_gas_price,price_type,VARCHAR,YES,6
+stg_gas_price,gas_price_aud_gj,DOUBLE,YES,7
+stg_gas_price,interval_minutes,INTEGER,YES,8
+stg_gas_price,source,VARCHAR,YES,9
+stg_gas_price,source_file,VARCHAR,YES,10
+stg_gas_price,ingested_at_utc,TIMESTAMP WITH TIME ZONE,YES,11
+stg_power_price,interval_start_utc,TIMESTAMP WITH TIME ZONE,YES,1
+stg_power_price,market_datetime_local,TIMESTAMP,YES,2
+stg_power_price,timezone,VARCHAR,YES,3
+stg_power_price,state_code,VARCHAR,YES,4
+stg_power_price,aemo_region_code,VARCHAR,YES,5
+stg_power_price,market,VARCHAR,YES,6
+stg_power_price,price_type,VARCHAR,YES,7
+stg_power_price,power_price_aud_mwh,DOUBLE,YES,8
+stg_power_price,total_demand_mw,DOUBLE,YES,9
+stg_power_price,available_generation_mw,DOUBLE,YES,10
+stg_power_price,available_load_mw,DOUBLE,YES,11
+stg_power_price,interval_minutes,INTEGER,YES,12
+stg_power_price,source,VARCHAR,YES,13
+stg_power_price,source_file,VARCHAR,YES,14
+stg_power_price,ingested_at_utc,TIMESTAMP WITH TIME ZONE,YES,15
+v_gas_price,interval_start_utc,TIMESTAMP WITH TIME ZONE,YES,1
+v_gas_price,market_datetime_local,TIMESTAMP,YES,2
+v_gas_price,timezone,VARCHAR,YES,3
+v_gas_price,country,VARCHAR,YES,4
+v_gas_price,market,VARCHAR,YES,5
+v_gas_price,region_code,VARCHAR,YES,6
+v_gas_price,price_type,VARCHAR,YES,7
+v_gas_price,gas_price,DOUBLE,YES,8
+v_gas_price,currency,VARCHAR,YES,9
+v_gas_price,unit,VARCHAR,YES,10
+v_gas_price,interval_minutes,INTEGER,YES,11
+v_gas_price,source,VARCHAR,YES,12
+v_gas_price,source_file,VARCHAR,YES,13
+v_gas_price,ingested_at_utc,TIMESTAMP WITH TIME ZONE,YES,14
+v_power_price,interval_start_utc,TIMESTAMP WITH TIME ZONE,YES,1
+v_power_price,market_datetime_local,TIMESTAMP,YES,2
+v_power_price,timezone,VARCHAR,YES,3
+v_power_price,country,VARCHAR,YES,4
+v_power_price,market,VARCHAR,YES,5
+v_power_price,region_code,VARCHAR,YES,6
+v_power_price,price_type,VARCHAR,YES,7
+v_power_price,power_price,DOUBLE,YES,8
+v_power_price,currency,VARCHAR,YES,9
+v_power_price,unit,VARCHAR,YES,10
+v_power_price,interval_minutes,INTEGER,YES,11
+v_power_price,source,VARCHAR,YES,12
+v_power_price,source_file,VARCHAR,YES,13
+v_power_price,ingested_at_utc,TIMESTAMP WITH TIME ZONE,YES,14

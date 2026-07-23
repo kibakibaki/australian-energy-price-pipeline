@@ -30,8 +30,8 @@ MMSDM_ARCHIVE_URL = (
     "https://nemweb.com.au/Data_Archive/Wholesale_Electricity/MMSDM"
 )
 
-RAW_DIRECTORY = Path("data/raw/aemo")
-DATABASE_PATH = Path("energy.duckdb")
+RAW_DIRECTORY = Path("data/raw/australia/electricity/aemo")
+DATABASE_PATH = Path("database/australian_energy_market.duckdb")
 
 VALID_REGIONS = {
     "NSW1",
@@ -772,6 +772,7 @@ def ingest_aemo_period(
     Run the complete extract-transform-load process.
     """
     RAW_DIRECTORY.mkdir(parents=True, exist_ok=True)
+    DATABASE_PATH.parent.mkdir(parents=True, exist_ok=True)
 
     session = create_http_session()
     available_files = discover_archive_files(session)
@@ -875,6 +876,7 @@ def ingest_aemo_monthly_period(
         raise ValueError("start_date must not be after end_date")
 
     RAW_DIRECTORY.mkdir(parents=True, exist_ok=True)
+    DATABASE_PATH.parent.mkdir(parents=True, exist_ok=True)
     session = create_http_session()
     connection = duckdb.connect(str(DATABASE_PATH))
     initialise_database(connection)
