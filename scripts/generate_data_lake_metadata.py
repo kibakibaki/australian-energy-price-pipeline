@@ -12,30 +12,73 @@ METADATA_DIR = Path("data/metadata/australia")
 
 SOURCE_CATALOG = [
     {
-        "dataset": "aemo_nem_dispatch_price",
-        "commodity": "POWER",
-        "regions": "NSW1|QLD1|SA1|TAS1|VIC1",
-        "frequency": "5 minutes",
-        "source": "AEMO NEMWeb MMSDM",
-        "raw_path": "data/raw/australia/electricity/aemo/monthly",
+        "source": "AEMO_NEM",
+        "dataset_name": "aemo_nem_dispatch_price",
+        "source_url": (
+            "https://nemweb.com.au/Data_Archive/"
+            "Wholesale_Electricity/MMSDM"
+        ),
+        "native_frequency": "5-minute",
+        "native_grain": "market interval + NEM region",
+        "unit": "AUD/MWh",
+        "timezone_context": "Australian NEM market time",
+        "notes": "NSW, QLD, SA, TAS and VIC regional reference prices",
     },
     {
-        "dataset": "aemo_sttm_price",
-        "commodity": "GAS",
-        "regions": "NSW|QLD|SA",
-        "frequency": "daily gas day",
-        "source": "AEMO STTM",
-        "raw_path": "data/raw/australia/gas/aemo/sttm",
+        "source": "AEMO_STTM",
+        "dataset_name": "aemo_sttm_price",
+        "source_url": (
+            "https://www.aemo.com.au/energy-systems/gas/"
+            "short-term-trading-market-sttm/data-sttm/daily-sttm-reports"
+        ),
+        "native_frequency": "daily gas day",
+        "native_grain": "gas day + hub",
+        "unit": "AUD/GJ",
+        "timezone_context": "Local STTM hub time",
+        "notes": "Sydney (NSW), Brisbane (QLD) and Adelaide (SA)",
     },
     {
-        "dataset": "aemo_dwgm_price",
-        "commodity": "GAS",
-        "regions": "VIC",
-        "frequency": "schedule interval",
-        "source": "AEMO DWGM",
-        "raw_path": "data/raw/australia/gas/aemo/dwgm",
+        "source": "AEMO_DWGM",
+        "dataset_name": "aemo_dwgm_price",
+        "source_url": (
+            "https://www.aemo.com.au/energy-systems/gas/"
+            "declared-wholesale-gas-market-dwgm/data-dwgm/"
+            "vic-wholesale-price-withdrawals"
+        ),
+        "native_frequency": "schedule interval",
+        "native_grain": "schedule timestamp + market",
+        "unit": "AUD/GJ",
+        "timezone_context": "Australia/Melbourne",
+        "notes": "Victorian Declared Wholesale Gas Market",
     },
 ]
+
+MANIFEST_CONFIG = {
+    "AEMO_NEM": {
+        "source": "AEMO_NEM",
+        "dataset_name": "aemo_nem_dispatch_price",
+        "source_file": "48 monthly AEMO MMSDM ZIP files",
+        "local_raw_path": "data/raw/australia/electricity/aemo/monthly",
+        "source_url": SOURCE_CATALOG[0]["source_url"],
+        "requested_date": "2022-01-01 to 2026-01-01 (end boundary)",
+    },
+    "AEMO_STTM": {
+        "source": "AEMO_STTM",
+        "dataset_name": "aemo_sttm_price",
+        "source_file": "sttm-price-and-withdrawals.xlsx",
+        "local_raw_path": "data/raw/australia/gas/aemo/sttm",
+        "source_url": SOURCE_CATALOG[1]["source_url"],
+        "requested_date": "2022-01-01 to 2026-01-01",
+    },
+    "AEMO_DWGM": {
+        "source": "AEMO_DWGM",
+        "dataset_name": "aemo_dwgm_price",
+        "source_file": "dwgm-prices-and-demand.xlsx",
+        "local_raw_path": "data/raw/australia/gas/aemo/dwgm",
+        "source_url": SOURCE_CATALOG[2]["source_url"],
+        "requested_date": "2022-01-01 to 2026-01-01",
+    },
+}
 
 
 def write_csv(path: Path, rows: list[dict[str, object]]) -> None:
@@ -59,28 +102,40 @@ def main() -> None:
     generated_at = datetime.now(timezone.utc).isoformat()
     con = duckdb.connect(str(DB_PATH), read_only=True)
     try:
-        coverage = con.execute(
+        coverage_rows = con.execute(
             """
-            SELECT commodity, market, region_code,
-                   COUNT(*) AS row_count,
-                   MIN(interval_start_utc) AS first_timestamp_utc,
-                   MAX(interval_start_utc) AS last_timestamp_utc
+            SELECT market,
+                   COUNT(*) AS record_count,
+                   MIN(interval_start_utc) AS actual_start_timestamp,
+                   MAX(interval_start_utc) AS actual_end_timestamp
             FROM fact_energy_price
-            GROUP BY ALL
-            ORDER BY commodity, market, region_code
+            GROUP BY market
+            ORDER BY market
             """
-        ).fetchdf()
-        manifest = coverage.assign(
-            dataset="fact_energy_price",
-            status="loaded",
-            generated_at_utc=generated_at,
-        )[
-            [
-                "dataset", "commodity", "market", "region_code", "status",
-                "row_count", "first_timestamp_utc", "last_timestamp_utc",
-                "generated_at_utc",
-            ]
-        ].to_dict("records")
+        ).fetchall()
+        manifest = []
+        for (
+            market,
+            record_count,
+            actual_start_timestamp,
+            actual_end_timestamp,
+        ) in coverage_rows:
+            config = MANIFEST_CONFIG[market]
+            manifest.append(
+                {
+                    "source": config["source"],
+                    "dataset_name": config["dataset_name"],
+                    "source_file": config["source_file"],
+                    "local_raw_path": config["local_raw_path"],
+                    "ingestion_timestamp": generated_at,
+                    "actual_start_timestamp": actual_start_timestamp,
+                    "actual_end_timestamp": actual_end_timestamp,
+                    "record_count": record_count,
+                    "status": "migrated_verified",
+                    "source_url": config["source_url"],
+                    "requested_date": config["requested_date"],
+                }
+            )
 
         columns = con.execute(
             """

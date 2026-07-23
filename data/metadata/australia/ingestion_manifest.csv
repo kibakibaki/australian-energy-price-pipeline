@@ -1,10 +1,4 @@
-dataset,commodity,market,region_code,status,row_count,first_timestamp_utc,last_timestamp_utc,generated_at_utc
-fact_energy_price,GAS,AEMO_DWGM,VIC,loaded,7310,2022-01-01 06:00:00+11:00,2026-01-01 22:00:00+11:00,2026-07-21T11:50:49.997432+00:00
-fact_energy_price,GAS,AEMO_STTM,NSW,loaded,1462,2022-01-01 06:00:00+11:00,2026-01-01 06:00:00+11:00,2026-07-21T11:50:49.997432+00:00
-fact_energy_price,GAS,AEMO_STTM,QLD,loaded,1462,2022-01-01 07:00:00+11:00,2026-01-01 07:00:00+11:00,2026-07-21T11:50:49.997432+00:00
-fact_energy_price,GAS,AEMO_STTM,SA,loaded,1462,2022-01-01 06:30:00+11:00,2026-01-01 06:30:00+11:00,2026-07-21T11:50:49.997432+00:00
-fact_energy_price,POWER,AEMO_NEM,NSW1,loaded,420768,2022-01-01 01:05:00+11:00,2026-01-01 01:00:00+11:00,2026-07-21T11:50:49.997432+00:00
-fact_energy_price,POWER,AEMO_NEM,QLD1,loaded,420768,2022-01-01 01:05:00+11:00,2026-01-01 01:00:00+11:00,2026-07-21T11:50:49.997432+00:00
-fact_energy_price,POWER,AEMO_NEM,SA1,loaded,420768,2022-01-01 01:05:00+11:00,2026-01-01 01:00:00+11:00,2026-07-21T11:50:49.997432+00:00
-fact_energy_price,POWER,AEMO_NEM,TAS1,loaded,420768,2022-01-01 01:05:00+11:00,2026-01-01 01:00:00+11:00,2026-07-21T11:50:49.997432+00:00
-fact_energy_price,POWER,AEMO_NEM,VIC1,loaded,420768,2022-01-01 01:05:00+11:00,2026-01-01 01:00:00+11:00,2026-07-21T11:50:49.997432+00:00
+source,dataset_name,source_file,local_raw_path,ingestion_timestamp,actual_start_timestamp,actual_end_timestamp,record_count,status,source_url,requested_date
+AEMO_DWGM,aemo_dwgm_price,dwgm-prices-and-demand.xlsx,data/raw/australia/gas/aemo/dwgm,2026-07-23T08:37:29.290832+00:00,2022-01-01 06:00:00+11:00,2026-01-01 22:00:00+11:00,7310,migrated_verified,https://www.aemo.com.au/energy-systems/gas/declared-wholesale-gas-market-dwgm/data-dwgm/vic-wholesale-price-withdrawals,2022-01-01 to 2026-01-01
+AEMO_NEM,aemo_nem_dispatch_price,48 monthly AEMO MMSDM ZIP files,data/raw/australia/electricity/aemo/monthly,2026-07-23T08:37:29.290832+00:00,2022-01-01 01:05:00+11:00,2026-01-01 01:00:00+11:00,2103840,migrated_verified,https://nemweb.com.au/Data_Archive/Wholesale_Electricity/MMSDM,2022-01-01 to 2026-01-01 (end boundary)
+AEMO_STTM,aemo_sttm_price,sttm-price-and-withdrawals.xlsx,data/raw/australia/gas/aemo/sttm,2026-07-23T08:37:29.290832+00:00,2022-01-01 06:00:00+11:00,2026-01-01 07:00:00+11:00,4386,migrated_verified,https://www.aemo.com.au/energy-systems/gas/short-term-trading-market-sttm/data-sttm/daily-sttm-reports,2022-01-01 to 2026-01-01
