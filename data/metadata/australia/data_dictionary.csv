@@ -54,6 +54,7 @@ mart_daily_energy_price,gas_price_aud_gj,DOUBLE,YES,11
 mart_daily_energy_price,gas_market,VARCHAR,YES,12
 mart_daily_energy_price,gas_price_type,VARCHAR,YES,13
 mart_daily_energy_price,has_gas_spot_price,BOOLEAN,YES,14
+mart_daily_energy_price,gas_alignment_status,VARCHAR,YES,15
 mart_energy_price_summary,country,VARCHAR,YES,1
 mart_energy_price_summary,commodity,VARCHAR,YES,2
 mart_energy_price_summary,market,VARCHAR,YES,3

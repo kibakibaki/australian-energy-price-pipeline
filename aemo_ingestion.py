@@ -306,6 +306,27 @@ def download_monthly_zip(
 
     return destination_path
 
+
+def find_cached_monthly_zip(report_month: date) -> Path | None:
+    """Return a previously downloaded monthly archive when one is available."""
+    monthly_directory = (
+        RAW_DIRECTORY
+        / "monthly"
+        / str(report_month.year)
+        / f"{report_month.month:02d}"
+    )
+    cached_files = sorted(monthly_directory.glob("*.zip"))
+    if not cached_files:
+        return None
+    if len(cached_files) > 1:
+        raise RuntimeError(
+            f"Multiple monthly ZIP files found in {monthly_directory}"
+        )
+    if cached_files[0].stat().st_size == 0:
+        raise RuntimeError(f"Cached monthly ZIP is empty: {cached_files[0]}")
+    return cached_files[0]
+
+
 def iter_csv_payloads(
     zip_source,
     prefix: str = "",
@@ -886,8 +907,21 @@ def ingest_aemo_monthly_period(
             started_at = datetime.now().astimezone()
             aemo_file = build_monthly_file(report_month)
             try:
-                aemo_file = discover_monthly_file(session, report_month)
-                zip_path = download_monthly_zip(session, aemo_file)
+                cached_zip = find_cached_monthly_zip(report_month)
+                if cached_zip is not None:
+                    LOGGER.info("Using cached monthly file: %s", cached_zip)
+                    zip_path = cached_zip
+                    aemo_file = AemoMonthlyFile(
+                        report_month=report_month,
+                        filename=cached_zip.name,
+                        url="",
+                    )
+                else:
+                    aemo_file = discover_monthly_file(
+                        session,
+                        report_month,
+                    )
+                    zip_path = download_monthly_zip(session, aemo_file)
                 raw_dataframe = parse_dispatch_zip(zip_path)
                 cleaned_dataframe = transform_dispatch_price(raw_dataframe)
 

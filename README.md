@@ -27,19 +27,44 @@ data/
 │       └── gas/aemo/         Original STTM and DWGM workbooks (Bronze)
 ├── raw_parquet/
 │   └── australia/
-│       └── fact_energy_price.parquet  Complete POWER and GAS dataset
+│       ├── electricity/
+│       │   └── aemo_nem_dispatch_price.parquet
+│       └── gas/
+│           ├── aemo_sttm_price.parquet
+│           └── aemo_dwgm_price.parquet
 └── metadata/
-    └── australia/            CSV catalog, manifest, and data dictionary
+    └── australia/
+        ├── source_catalog.csv
+        ├── ingestion_manifest.csv
+        └── data_dictionary.csv
 
 database/
 └── australian_energy_market.duckdb    Local dbt/DuckDB database
 ```
 
 Weather is intentionally omitted until a weather source is selected.
-dbt staging, intermediate, and mart relations remain inside DuckDB instead of
-being exported as duplicate Parquet files.
+The raw-equivalent Parquet files preserve the unified ingestion schema while
+remaining separated by source dataset. dbt staging, intermediate, and mart
+relations remain inside DuckDB instead of being exported as duplicate files.
 
-## Setup
+## Rebuild DuckDB from the shared Data Lake
+
+Download the following Google Drive folder into the repository root, preserving
+the directory names:
+
+```text
+data/raw/australia/
+├── electricity/aemo/monthly/{year}/{month}/*.zip
+└── gas/aemo/
+    ├── sttm/sttm-price-and-withdrawals.xlsx
+    └── dwgm/dwgm-prices-and-demand.xlsx
+```
+
+The ingestion scripts reuse these local source files when they exist. Network
+access to AEMO is only required for a missing source file or when gas ingestion
+is run with `--refresh`.
+
+### 1. Set up Python
 
 Python 3.9 or later is required.
 
@@ -50,19 +75,23 @@ pip install -r requirements.txt
 python init_duckdb.py
 ```
 
-## Ingest electricity prices
+### 2. Load electricity into DuckDB
 
-The monthly archive mode supports historical MMSDM file naming used across
-2024 and 2025.
+The requested period is represented as `[2022-01-01, 2026-01-01)`: four
+complete calendar years, including the 2024 leap day. The monthly archive mode
+supports both historical MMSDM filename conventions present in this period.
 
 ```bash
 python aemo_ingestion.py \
-  --start-date 2024-01-01 \
+  --start-date 2022-01-01 \
   --end-date 2025-12-31 \
   --archive-mode monthly
 ```
 
-## Ingest gas prices
+Expected result: 2,103,840 five-minute rows, or 420,768 rows for each of NSW,
+QLD, SA, TAS, and VIC.
+
+### 3. Load gas into DuckDB
 
 ```bash
 python aemo_gas_ingestion.py \
@@ -74,21 +103,51 @@ The default ingests both STTM and DWGM. Use `--market sttm` or
 `--market dwgm` to select one market, and `--refresh` to replace cached
 AEMO workbooks.
 
-## Transform, test, and export
+Expected result: 11,696 rows: 1,462 STTM gas days for each of NSW, QLD, and SA,
+plus 7,310 Victorian DWGM schedule rows. Tasmania has no equivalent
+AEMO-operated wholesale gas spot market.
+
+### 4. Build and test dbt models
 
 Run dbt from its project directory with the repository-local profile:
 
 ```bash
 cd energy_dbt
-dbt build --profiles-dir .
+../.venv/bin/dbt build --profiles-dir .
 cd ..
-python scripts/convert_csv_to_parquet.py
-python scripts/generate_data_lake_metadata.py
-python scripts/validate_energy_price_data.py
 ```
 
 The dbt test result is written to `energy_dbt/target/run_results.json` and the
 detailed execution log to `energy_dbt/logs/dbt.log`.
+
+Expected result:
+
+```text
+PASS=63 WARN=0 ERROR=0 SKIP=0
+```
+
+### 5. Export Data Lake files and validate
+
+```bash
+.venv/bin/python scripts/convert_csv_to_parquet.py
+.venv/bin/python scripts/generate_data_lake_metadata.py
+.venv/bin/python scripts/validate_energy_price_data.py
+```
+
+Upload the regenerated `data/raw_parquet/australia` and
+`data/metadata/australia` folders to the matching shared Google Drive
+directories. These files are snapshots and do not update automatically after a
+local pipeline run.
+
+### 6. Verify the physical DuckDB tables
+
+The local database is `database/australian_energy_market.duckdb`. The raw
+physical table is `fact_energy_price`; dbt staging models are views, while
+intermediate and mart models are physical tables.
+
+```bash
+.venv/bin/python -c "import duckdb; c=duckdb.connect('database/australian_energy_market.duckdb'); print(c.execute('show tables').fetchdf().to_string(index=False))"
+```
 
 ## Query the data
 
@@ -126,6 +185,10 @@ ORDER BY commodity, market;
   hubs. DWGM covers Victoria.
 - Tasmania does not have an AEMO-operated wholesale gas spot market, so there
   is no equivalent official TAS gas spot-price series to ingest.
+- The daily mart uses the power calendar as its base and LEFT JOINs same-date,
+  same-state gas prices. Missing gas values are not forward-filled. The
+  `gas_alignment_status` field distinguishes `matched`,
+  `missing_source_date`, and `not_available_for_state`.
 
 ## Data sources
 

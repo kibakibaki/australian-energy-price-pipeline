@@ -1,4 +1,4 @@
-dataset,commodity,regions,frequency,source,raw_path
-aemo_nem_dispatch_price,POWER,NSW1|QLD1|SA1|TAS1|VIC1,5 minutes,AEMO NEMWeb MMSDM,data/raw/australia/electricity/aemo/monthly
-aemo_sttm_price,GAS,NSW|QLD|SA,daily gas day,AEMO STTM,data/raw/australia/gas/aemo/sttm
-aemo_dwgm_price,GAS,VIC,schedule interval,AEMO DWGM,data/raw/australia/gas/aemo/dwgm
+source,dataset_name,source_url,native_frequency,native_grain,unit,timezone_context,notes
+AEMO_NEM,aemo_nem_dispatch_price,https://nemweb.com.au/Data_Archive/Wholesale_Electricity/MMSDM,5-minute,market interval + NEM region,AUD/MWh,Australian NEM market time,"NSW, QLD, SA, TAS and VIC regional reference prices"
+AEMO_STTM,aemo_sttm_price,https://www.aemo.com.au/energy-systems/gas/short-term-trading-market-sttm/data-sttm/daily-sttm-reports,daily gas day,gas day + hub,AUD/GJ,Local STTM hub time,"Sydney (NSW), Brisbane (QLD) and Adelaide (SA)"
+AEMO_DWGM,aemo_dwgm_price,https://www.aemo.com.au/energy-systems/gas/declared-wholesale-gas-market-dwgm/data-dwgm/vic-wholesale-price-withdrawals,schedule interval,schedule timestamp + market,AUD/GJ,Australia/Melbourne,Victorian Declared Wholesale Gas Market

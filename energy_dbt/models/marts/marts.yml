@@ -20,6 +20,18 @@ models:
         tests: [not_null]
       - name: has_gas_spot_price
         tests: [not_null]
+      - name: gas_alignment_status
+        description: >
+          Indicates whether a same-state, same-date AEMO gas spot price was
+          matched, missing from the source date, or unavailable for the state.
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values:
+                  - matched
+                  - missing_source_date
+                  - not_available_for_state
 
   - name: mart_energy_price_summary
     description: Coverage and descriptive statistics by energy price series.
